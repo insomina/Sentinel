@@ -17,6 +17,7 @@ package com.alibaba.csp.sentinel.demo.apache.dubbo.consumer;
 
 
 import org.apache.dubbo.config.ApplicationConfig;
+import org.apache.dubbo.config.ConfigCenterConfig;
 import org.apache.dubbo.config.ConsumerConfig;
 import org.apache.dubbo.config.RegistryConfig;
 import org.apache.dubbo.config.spring.context.annotation.DubboComponentScan;
@@ -36,15 +37,22 @@ public class ConsumerConfiguration {
         return applicationConfig;
     }
 
-    @Bean
-    public RegistryConfig registryConfig() {
-        RegistryConfig registryConfig = new RegistryConfig();
-        registryConfig.setAddress("multicast://224.5.6.7:1234");
-        return registryConfig;
-    }
+  //    @Bean
+  //    public RegistryConfig registryConfig() {
+  //        RegistryConfig registryConfig = new RegistryConfig();
+  //        registryConfig.setAddress("multicast://224.5.6.7:1234");
+  //        return registryConfig;
+  //    }
 
-    @Bean
-    public ConsumerConfig consumerConfig() {
+  @Bean
+  public ConfigCenterConfig configCenterConfig() {
+    ConfigCenterConfig centerConfig = new ConfigCenterConfig();
+    centerConfig.setAddress("zookeeper://127.0.0.1:2181");
+    return centerConfig;
+  }
+
+  @Bean
+  public ConsumerConfig consumerConfig() {
         ConsumerConfig consumerConfig = new ConsumerConfig();
         // Uncomment below line if you don't want to enable Sentinel for Dubbo service consumers.
         // consumerConfig.setFilter("-sentinel.dubbo.consumer.filter");

@@ -16,6 +16,8 @@
 package com.alibaba.csp.sentinel.demo.apache.dubbo.provider;
 
 import org.apache.dubbo.config.ApplicationConfig;
+import org.apache.dubbo.config.ConfigCenterConfig;
+import org.apache.dubbo.config.MetadataReportConfig;
 import org.apache.dubbo.config.ProtocolConfig;
 import org.apache.dubbo.config.RegistryConfig;
 import org.apache.dubbo.config.spring.context.annotation.DubboComponentScan;
@@ -32,16 +34,30 @@ public class ProviderConfiguration {
     @Bean
     public ApplicationConfig applicationConfig() {
         ApplicationConfig applicationConfig = new ApplicationConfig();
-        applicationConfig.setName("demo-provider");
+        applicationConfig.setName("dubbo-provider-demo");
         return applicationConfig;
     }
 
+    // @Bean
+    // public RegistryConfig registryConfig() {
+    // RegistryConfig registryConfig = new RegistryConfig();
+    // registryConfig.setAddress("zookeeper://127.0.0.1:2181");
+    // return registryConfig;
+    // }
+
     @Bean
-    public RegistryConfig registryConfig() {
-        RegistryConfig registryConfig = new RegistryConfig();
-        registryConfig.setAddress("multicast://224.5.6.7:1234");
-        return registryConfig;
+    public ConfigCenterConfig configCenterConfig() {
+        ConfigCenterConfig centerConfig = new ConfigCenterConfig();
+        centerConfig.setAddress("zookeeper://192.168.21.176:2181");
+        return centerConfig;
     }
+
+    // @Bean
+    // public MetadataReportConfig metadataReportConfig() {
+    // MetadataReportConfig metadataReportConfig = new MetadataReportConfig();
+    // metadataReportConfig.setAddress("redis://127.0.0.1:6700");
+    // return metadataReportConfig;
+    // }
 
     @Bean
     public ProtocolConfig protocolConfig() {
