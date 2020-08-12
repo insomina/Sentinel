@@ -112,11 +112,11 @@ public class WarmUpFlowDemo {
         List<FlowRule> rules = new ArrayList<FlowRule>();
         FlowRule rule1 = new FlowRule();
         rule1.setResource(KEY);
-        rule1.setCount(20);
+        rule1.setCount(5000);
         rule1.setGrade(RuleConstant.FLOW_GRADE_QPS);
         rule1.setLimitApp("default");
         rule1.setControlBehavior(RuleConstant.CONTROL_BEHAVIOR_WARM_UP);
-        rule1.setWarmUpPeriodSec(10);
+        rule1.setWarmUpPeriodSec((int)(seconds *0.7));
 
         rules.add(rule1);
         FlowRuleManager.loadRules(rules);

@@ -57,18 +57,18 @@ public class SystemGuardDemo {
                         try {
                             entry = SphU.entry("methodA", EntryType.IN);
                             pass.incrementAndGet();
-                            try {
-                                TimeUnit.MILLISECONDS.sleep(20);
-                            } catch (InterruptedException e) {
-                                // ignore
-                            }
+//                            try {
+//                                TimeUnit.MILLISECONDS.sleep(20);
+//                            } catch (InterruptedException e) {
+//                                // ignore
+//                            }
                         } catch (BlockException e1) {
                             block.incrementAndGet();
-                            try {
-                                TimeUnit.MILLISECONDS.sleep(20);
-                            } catch (InterruptedException e) {
-                                // ignore
-                            }
+//                            try {
+//                                TimeUnit.MILLISECONDS.sleep(20);
+//                            } catch (InterruptedException e) {
+//                                // ignore
+//                            }
                         } catch (Exception e2) {
                             // biz exception
                         } finally {
@@ -92,13 +92,13 @@ public class SystemGuardDemo {
         // max load is 3
         rule.setHighestSystemLoad(3.0);
         // max cpu usage is 60%
-        rule.setHighestCpuUsage(0.6);
+        //rule.setHighestCpuUsage(0.6);
         // max avg rt of all request is 10 ms
-        rule.setAvgRt(10);
+        //rule.setAvgRt(10);
         // max total qps is 20
-        rule.setQps(20);
+        rule.setQps(60000);
         // max parallel working thread is 10
-        rule.setMaxThread(10);
+//        rule.setMaxThread(10);
 
         rules.add(rule);
         SystemRuleManager.loadRules(Collections.singletonList(rule));

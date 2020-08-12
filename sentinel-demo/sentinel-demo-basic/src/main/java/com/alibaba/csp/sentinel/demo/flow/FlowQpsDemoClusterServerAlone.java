@@ -23,7 +23,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import com.alibaba.csp.sentinel.util.TimeUtil;
 import com.alibaba.csp.sentinel.Entry;
+import com.alibaba.csp.sentinel.EntryType;
 import com.alibaba.csp.sentinel.SphU;
+import com.alibaba.csp.sentinel.cluster.ClusterStateManager;
+import com.alibaba.csp.sentinel.cluster.client.config.ClusterClientAssignConfig;
+import com.alibaba.csp.sentinel.cluster.client.config.ClusterClientConfigManager;
 import com.alibaba.csp.sentinel.slots.block.BlockException;
 import com.alibaba.csp.sentinel.slots.block.RuleConstant;
 import com.alibaba.csp.sentinel.slots.block.flow.FlowRule;
@@ -32,9 +36,9 @@ import com.alibaba.csp.sentinel.slots.block.flow.FlowRuleManager;
 /**
  * @author jialiang.linjl
  */
-public class FlowQpsDemo {
+public class FlowQpsDemoClusterServerAlone {
 
-    private static final String KEY = "abc";
+    private static final String KEY = "appA/def";
 
     private static AtomicInteger pass = new AtomicInteger();
     private static AtomicInteger block = new AtomicInteger();
@@ -47,9 +51,20 @@ public class FlowQpsDemo {
     private static int seconds = 60 + 40;
 
     public static void main(String[] args) throws Exception {
+        ClusterClientAssignConfig clientConfig = new ClusterClientAssignConfig();
+        clientConfig.setServerHost("192.168.21.176");
+        clientConfig.setServerPort(11111);
+        ClusterClientConfigManager.applyNewAssignConfig(clientConfig);
+        
+        ClusterStateManager.applyState(ClusterStateManager.CLUSTER_CLIENT);
+
+        
         initFlowQpsRule();
+        
+        ClusterStateManager.applyState(ClusterStateManager.CLUSTER_CLIENT);
 
         tick();
+        
         // first make the system run on a very low condition
         simulateTraffic();
 
@@ -65,13 +80,16 @@ public class FlowQpsDemo {
         rule1.setResource(KEY);
         // set limit qps to 20
         // 限流阈值
-        rule1.setCount(100);
+        rule1.setCount(10);
         // 流量控制主要有两种统计类型，一种是统计并发线程数，另外一种则是统计 QPS。类型由 FlowRule 的 grade 字段来定义。其中，0 代表根据并发数量来限流，1 代表根据 QPS
         // 来进行流量控制。其中线程数、QPS 值，都是由 StatisticSlot 实时统计获取的。
         rule1.setGrade(RuleConstant.FLOW_GRADE_QPS);
         // 流控针对的调用来源，若为 default 则不区分调用来源
         rule1.setLimitApp("default");
+        
+        rule1.setClusterMode(true);
         rules.add(rule1);
+        
         FlowRuleManager.loadRules(rules);
     }
 
@@ -121,7 +139,7 @@ public class FlowQpsDemo {
                     + oneSecondPass + ", block:" + oneSecondBlock);
 
                 if (seconds-- <= 0) {
-                    stop = true;
+//                    stop = true;
                 }
             }
 
@@ -139,7 +157,7 @@ public class FlowQpsDemo {
                 Entry entry = null;
 
                 try {
-                    entry = SphU.entry(KEY);
+                    entry = SphU.entry(KEY, EntryType.IN, 1);
                     // token acquired, means pass
                     pass.addAndGet(1);
                 } catch (BlockException e1) {

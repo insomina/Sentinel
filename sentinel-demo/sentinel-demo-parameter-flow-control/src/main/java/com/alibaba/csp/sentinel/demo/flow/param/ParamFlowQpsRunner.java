@@ -158,7 +158,6 @@ class ParamFlowQpsRunner<T> {
                 // There may be a mismatch for time window of internal sliding window.
                 // See corresponding `metrics.log` for accurate statistic log.
                 for (T param : params) {
-
                     System.out.println(String.format(
                         "[%d][%d] Parameter flow metrics for resource %s: "
                             + "pass count for param <%s> is %d, block count: %d",

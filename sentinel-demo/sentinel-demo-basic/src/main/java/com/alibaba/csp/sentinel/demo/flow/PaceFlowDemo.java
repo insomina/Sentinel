@@ -101,7 +101,7 @@ public class PaceFlowDemo {
 
     private static volatile CountDownLatch countDown;
 
-    private static final Integer requestQps = 100;
+    private static final Integer requestQps = 100000;
     private static final Integer count = 10;
     private static final AtomicInteger done = new AtomicInteger();
     private static final AtomicInteger pass = new AtomicInteger();
@@ -144,6 +144,7 @@ public class PaceFlowDemo {
          * until the queueing time is more than {@link FlowRule#maxQueueingTimeMs}, the requests will be rejected.
          */
         rule1.setControlBehavior(RuleConstant.CONTROL_BEHAVIOR_RATE_LIMITER);
+        // 最长排队等待时间：20s
         rule1.setMaxQueueingTimeMs(20 * 1000);
 
         rules.add(rule1);
