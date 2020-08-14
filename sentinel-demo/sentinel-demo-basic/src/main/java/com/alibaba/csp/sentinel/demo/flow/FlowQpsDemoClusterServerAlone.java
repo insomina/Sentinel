@@ -1,17 +1,14 @@
 /*
  * Copyright 1999-2018 Alibaba Group Holding Ltd.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
  */
 package com.alibaba.csp.sentinel.demo.flow;
 
@@ -22,12 +19,17 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.alibaba.csp.sentinel.util.TimeUtil;
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.TypeReference;
 import com.alibaba.csp.sentinel.Entry;
 import com.alibaba.csp.sentinel.EntryType;
 import com.alibaba.csp.sentinel.SphU;
 import com.alibaba.csp.sentinel.cluster.ClusterStateManager;
 import com.alibaba.csp.sentinel.cluster.client.config.ClusterClientAssignConfig;
+import com.alibaba.csp.sentinel.cluster.client.config.ClusterClientConfig;
 import com.alibaba.csp.sentinel.cluster.client.config.ClusterClientConfigManager;
+import com.alibaba.csp.sentinel.datasource.ReadableDataSource;
+import com.alibaba.csp.sentinel.datasource.nacos.NacosDataSource;
 import com.alibaba.csp.sentinel.slots.block.BlockException;
 import com.alibaba.csp.sentinel.slots.block.RuleConstant;
 import com.alibaba.csp.sentinel.slots.block.flow.FlowRule;
@@ -38,7 +40,13 @@ import com.alibaba.csp.sentinel.slots.block.flow.FlowRuleManager;
  */
 public class FlowQpsDemoClusterServerAlone {
 
-    private static final String KEY = "appA/def";
+    private static final String KEY = "cluster-resource";
+
+    private static final String REMOTE_ADDRESS = "192.168.21.176";
+    private static final String GROUP_ID = "SENTINEL_GROUP";
+
+    private static final String APP_NAME = "appA";
+    private static final String FLOW_POSTFIX = "-flow-rules";
 
     private static AtomicInteger pass = new AtomicInteger();
     private static AtomicInteger block = new AtomicInteger();
@@ -51,32 +59,65 @@ public class FlowQpsDemoClusterServerAlone {
     private static int seconds = 60 + 40;
 
     public static void main(String[] args) throws Exception {
-        ClusterClientAssignConfig clientConfig = new ClusterClientAssignConfig();
-        clientConfig.setServerHost("192.168.21.176");
-        clientConfig.setServerPort(11111);
-        ClusterClientConfigManager.applyNewAssignConfig(clientConfig);
-        
-        ClusterStateManager.applyState(ClusterStateManager.CLUSTER_CLIENT);
 
-        
-        initFlowQpsRule();
-        
-        ClusterStateManager.applyState(ClusterStateManager.CLUSTER_CLIENT);
+        /**
+         * 加载集群客户端配置
+         * 
+         * 主要是集群服务端的相关连接信息
+         */
+        ClusterClientAssignConfig assignConfig = new ClusterClientAssignConfig();
+        assignConfig.setServerHost("192.168.21.176");
+        assignConfig.setServerPort(11111);
+        ClusterClientConfigManager.applyNewAssignConfig(assignConfig);
+
+        ClusterClientConfig clientConfig = new ClusterClientConfig();
+        clientConfig.setRequestTimeout(200);
+        ClusterClientConfigManager.applyNewConfig(clientConfig);
+
+        /**
+         * 为ClusterClientConfig注册一个SentinelProperty 这样的话可以动态的更改这些配置
+         */
+        String clientConfigDataId = "cluster-client-config";
+        // 初始化一个配置ClusterClientConfig的 Nacos 数据源
+        ReadableDataSource<String, ClusterClientConfig> clientConfigDS = new NacosDataSource<>(REMOTE_ADDRESS, GROUP_ID,
+            clientConfigDataId, source -> JSON.parseObject(source, new TypeReference<ClusterClientConfig>() {}));
+        ClusterClientConfigManager.registerClientConfigProperty(clientConfigDS.getProperty());
+
+        String clientAssignConfigDataId = "cluster-client-assign-config";
+        // 初始化一个配置ClusterClientAssignConfig的 Nacos 数据源
+        ReadableDataSource<String, ClusterClientAssignConfig> clientAssignConfigDS =
+            new NacosDataSource<>(REMOTE_ADDRESS, GROUP_ID, clientAssignConfigDataId,
+                source -> JSON.parseObject(source, new TypeReference<ClusterClientAssignConfig>() {}));
+        ClusterClientConfigManager.registerServerAssignProperty(clientAssignConfigDS.getProperty());
+
+        /**
+         * 注册动态规则Property 当client与Server连接中断，退化为本地限流时需要用到的该规则
+         */
+
+        // 使用 Nacos 数据源作为配置中心，需要在 REMOTE_ADDRESS 上启动一个 Nacos 的服务
+        ReadableDataSource<String, List<FlowRule>> ds = new NacosDataSource<>(REMOTE_ADDRESS, GROUP_ID,
+            APP_NAME + FLOW_POSTFIX, source -> JSON.parseObject(source, new TypeReference<List<FlowRule>>() {}));
+        // 为集群客户端注册动态规则源
+        FlowRuleManager.register2Property(ds.getProperty());
+
+        // initFlowQpsRule();
+
+         ClusterStateManager.applyState(ClusterStateManager.CLUSTER_CLIENT);
 
         tick();
-        
+
         // first make the system run on a very low condition
         simulateTraffic();
 
         System.out.println("===== begin to do flow control");
         System.out.println("only 20 requests per second can pass");
-        
+
     }
 
     private static void initFlowQpsRule() {
         List<FlowRule> rules = new ArrayList<FlowRule>();
         FlowRule rule1 = new FlowRule();
-        //资源名，即限流规则的作用对象
+        // 资源名，即限流规则的作用对象
         rule1.setResource(KEY);
         // set limit qps to 20
         // 限流阈值
@@ -86,10 +127,10 @@ public class FlowQpsDemoClusterServerAlone {
         rule1.setGrade(RuleConstant.FLOW_GRADE_QPS);
         // 流控针对的调用来源，若为 default 则不区分调用来源
         rule1.setLimitApp("default");
-        
+
         rule1.setClusterMode(true);
         rules.add(rule1);
-        
+
         FlowRuleManager.loadRules(rules);
     }
 
@@ -139,7 +180,7 @@ public class FlowQpsDemoClusterServerAlone {
                     + oneSecondPass + ", block:" + oneSecondBlock);
 
                 if (seconds-- <= 0) {
-//                    stop = true;
+                    // stop = true;
                 }
             }
 

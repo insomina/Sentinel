@@ -21,6 +21,7 @@ import com.alibaba.csp.sentinel.cluster.server.ClusterTokenServer;
 import com.alibaba.csp.sentinel.cluster.server.SentinelDefaultTokenServer;
 import com.alibaba.csp.sentinel.cluster.server.config.ClusterServerConfigManager;
 import com.alibaba.csp.sentinel.cluster.server.config.ServerTransportConfig;
+import com.alibaba.csp.sentinel.demo.cluster.init.DemoClusterServerInitFunc;
 
 /**
  * <p>Cluster server demo (alone mode).</p>
@@ -33,6 +34,10 @@ import com.alibaba.csp.sentinel.cluster.server.config.ServerTransportConfig;
 public class ClusterServerDemo {
 
     public static void main(String[] args) throws Exception {
+        // 初始化集群限流的规则
+        
+        new DemoClusterServerInitFunc().init();
+        
         // Not embedded mode by default (alone mode).
         ClusterTokenServer tokenServer = new SentinelDefaultTokenServer();
 
